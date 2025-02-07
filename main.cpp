@@ -102,6 +102,7 @@ DLinkedList& DLinkedList::operator=(const DLinkedList &source) {
 // =========================
 // Part (a) - Size Function (Recursive)
 // =========================
+
 int DLinkedList::Size() {
     return SizeRecursive(header->next);
 }
@@ -162,20 +163,15 @@ void DLinkedList::RemoveScore(int index) {
 bool DLinkedList::UpdateScore(std::string name, int score) {
     DNode* current = header->next;
 
-    while (current != trailer && current->name != name) {
+    while (current != trailer) {
+        if (current->name == name) {
+            current->score = score;
+            return true;
+        }
         current = current->next;
     }
 
-    if (current == trailer) {
-        std::cout << "Player '" << name << "' not found. No update performed." << std::endl;
-        return false;
-    }
-
-    current->prev->next = current->next;
-    current->next->prev = current->prev;
-
-    AddScoreInOrder(name, score);
-    return true;
+    return false;
 }
 
 // =========================
