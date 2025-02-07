@@ -13,6 +13,7 @@ private:
     DNode(std::string n = "", int s = 0) : name(n), score(s), prev(nullptr), next(nullptr) {}
 };
 
+
 class DLinkedList {
 public:
     DLinkedList();  // Constructor
@@ -36,8 +37,10 @@ private:
     DNode* header;  // Sentinel node at the start
     DNode* trailer; // Sentinel node at the end
 
+    int SizeRecursive(DNode* current);  // Recursive helper function for counting
     void PrintRecursive(DNode* current); // Recursive helper function for printing
 };
+
 
 // =========================
 // Constructor and Destructor
@@ -49,7 +52,18 @@ DLinkedList::DLinkedList() {
     trailer->prev = header;
 }
 
-// Copy Constructor
+// Destructor
+DLinkedList::~DLinkedList() {
+    while (header->next != trailer) {
+        DNode* temp = header->next;
+        header->next = temp->next;
+        delete temp;
+    }
+    delete header;
+    delete trailer;
+}
+
+//------Part J (Copy Constructor)
 DLinkedList::DLinkedList(const DLinkedList &source) {
     header = new DNode();
     trailer = new DNode();
@@ -63,16 +77,40 @@ DLinkedList::DLinkedList(const DLinkedList &source) {
     }
 }
 
-// Destructor
-DLinkedList::~DLinkedList() {
+//---------Part G (Opperator (=))
+DLinkedList& DLinkedList::operator=(const DLinkedList &source) {
+    if (this == &source) return *this;
+
     while (header->next != trailer) {
         DNode* temp = header->next;
         header->next = temp->next;
         delete temp;
     }
-    delete header;
-    delete trailer;
+    header->next = trailer;
+    trailer->prev = header;
+
+    DNode* current = source.header->next;
+    while (current != source.trailer) {
+        AddScoreInOrder(current->name, current->score);
+        current = current->next;
+    }
+
+    return *this;
 }
+
+
+// =========================
+// Part (a) - Size Function (Recursive)
+// =========================
+int DLinkedList::Size() {
+    return SizeRecursive(header->next);
+}
+
+int DLinkedList::SizeRecursive(DNode* current) {
+    if (current == trailer) return 0;
+    return 1 + SizeRecursive(current->next);
+}
+
 
 // =========================
 // Part (b) - AddScoreInOrder (Insert in Sorted Order)
@@ -92,85 +130,52 @@ void DLinkedList::AddScoreInOrder(std::string name, int score) {
 }
 
 // =========================
-// Part (i) - OrderByScore (Bubble Sort Approach)
+// Part (c) - RemoveScore (Remove i-th Score)
 // =========================
-void DLinkedList::OrderByScore() {
-    if (header->next == trailer || header->next->next == trailer) return; // No need to sort if 0 or 1 elements
-
-    bool swapped;
-    do {
-        swapped = false;
-        DNode* current = header->next;
-
-        while (current->next != trailer) { // Stop before trailer
-            if (current->score < current->next->score) {
-                // Swap data (names & scores)
-                std::swap(current->name, current->next->name);
-                std::swap(current->score, current->next->score);
-                swapped = true;
-            }
-            current = current->next;
-        }
-    } while (swapped); // Repeat until no swaps occur
-}
-
-// =========================
-// Part (h) - OrderByName (Bubble Sort Approach)
-// =========================
-void DLinkedList::OrderByName() {
-    if (header->next == trailer || header->next->next == trailer) return; // No need to sort if 0 or 1 elements
-
-    bool swapped;
-    do {
-        swapped = false;
-        DNode* current = header->next;
-
-        while (current->next != trailer) {
-            if (current->name > current->next->name) {
-                std::swap(current->name, current->next->name);
-                std::swap(current->score, current->next->score);
-                swapped = true;
-            }
-            current = current->next;
-        }
-    } while (swapped);
-}
-
-// =========================
-// Part (j) - Append (Merging Two Lists Without Copying Nodes)
-// =========================
-void DLinkedList::Append(DLinkedList &L) {
-    if (L.header->next == L.trailer) return;  // L is empty, nothing to append
-
-    DNode* lastNode = trailer->prev;
-    DNode* firstNodeL = L.header->next;
-    DNode* lastNodeL = L.trailer->prev;
-
-    lastNode->next = firstNodeL;
-    firstNodeL->prev = lastNode;
-
-    lastNodeL->next = trailer;
-    trailer->prev = lastNodeL;
-
-    L.header->next = L.trailer;
-    L.trailer->prev = L.header;
-}
-
-// =========================
-// Part (k) - Reverse (Swap Pointers)
-// =========================
-void DLinkedList::Reverse() {
-    if (header->next == trailer || header->next->next == trailer) return; // No need to reverse if 0 or 1 elements
-
-    DNode* current = header;
-    while (current != nullptr) {
-        DNode* temp = current->next;
-        current->next = current->prev;
-        current->prev = temp;
-        current = temp;
+void DLinkedList::RemoveScore(int index) {
+    if (header->next == trailer) {
+        std::cout << "List is empty. Nothing to remove." << std::endl;
+        return;
     }
 
-    std::swap(header, trailer);
+    DNode* current = header->next;
+    int count = 0;
+
+    while (current != trailer && count < index) {
+        current = current->next;
+        count++;
+    }
+
+    if (current == trailer) {
+        std::cout << "Invalid index. No node removed." << std::endl;
+        return;
+    }
+
+    current->prev->next = current->next;
+    current->next->prev = current->prev;
+    delete current;
+}
+
+// =========================
+// Part (d) - UpdateScore (Find and Update a Player's Score)
+// =========================
+bool DLinkedList::UpdateScore(std::string name, int score) {
+    DNode* current = header->next;
+
+    while (current != trailer && current->name != name) {
+        current = current->next;
+    }
+
+    if (current == trailer) {
+        std::cout << "Player '" << name << "' not found. No update performed." << std::endl;
+        return false;
+    }
+
+    current->prev->next = current->next;
+    current->next->prev = current->prev;
+
+    AddScoreInOrder(name, score);
+    return true;
 }
 
 // =========================
@@ -190,31 +195,152 @@ void DLinkedList::PrintRecursive(DNode* current) {
     PrintRecursive(current->next);
 }
 
+
+//-----> F and G placed above for code readbility and debugging
+
 // =========================
-// Main Function to Test Sorting by Name, then by Score
+// Part (h) - OrderByName (Bubble Sort Approach)
+// =========================
+void DLinkedList::OrderByName() {
+    if (header->next == trailer || header->next->next == trailer) return;
+
+    bool swapped;
+    do {
+        swapped = false;
+        DNode* current = header->next;
+
+        while (current->next != trailer) {
+            if (current->name > current->next->name) {
+                std::swap(current->name, current->next->name);
+                std::swap(current->score, current->next->score);
+                swapped = true;
+            }
+            current = current->next;
+        }
+    } while (swapped);
+}
+
+// =========================
+// Part (i) - OrderByScore (Bubble Sort Approach)
+// =========================
+void DLinkedList::OrderByScore() {
+    if (header->next == trailer || header->next->next == trailer) return;
+
+    bool swapped;
+    do {
+        swapped = false;
+        DNode* current = header->next;
+
+        while (current->next != trailer) {
+            if (current->score < current->next->score) {
+                std::swap(current->name, current->next->name);
+                std::swap(current->score, current->next->score);
+                swapped = true;
+            }
+            current = current->next;
+        }
+    } while (swapped);
+}
+
+// =========================
+// Part (j) - Append
+// =========================
+
+void DLinkedList::Append(DLinkedList &L) {
+    if (L.header->next == L.trailer) return;
+
+    DNode* lastNode = trailer->prev;
+    DNode* firstNodeL = L.header->next;
+    DNode* lastNodeL = L.trailer->prev;
+
+    lastNode->next = firstNodeL;
+    firstNodeL->prev = lastNode;
+
+    lastNodeL->next = trailer;
+    trailer->prev = lastNodeL;
+
+    L.header->next = L.trailer;
+    L.trailer->prev = L.header;
+}
+
+// =========================
+// Part (k) - reverse
+// =========================
+
+void DLinkedList::Reverse() {
+    if (header->next == trailer || header->next->next == trailer) return;
+
+    DNode* current = header;
+    while (current != nullptr) {
+        DNode* temp = current->next;
+        current->next = current->prev;
+        current->prev = temp;
+        current = temp;
+    }
+
+    std::swap(header, trailer);
+}
+
+
+
+// =========================
+// Main Function
 // =========================
 int main() {
+    std::cout << "=== Creating Linked List ===\n";
     DLinkedList dll;
 
-    // Adding scores (Initially in random order)
+    std::cout << "\nAdding Scores:\n";
     dll.AddScoreInOrder("Charlie", 85);
     dll.AddScoreInOrder("Alice", 95);
     dll.AddScoreInOrder("Eve", 88);
     dll.AddScoreInOrder("Bob", 90);
     dll.AddScoreInOrder("David", 97);
-
-    std::cout << "List before Sorting:" << std::endl;
     dll.Print();
 
-    // Sorting by name
-    std::cout << "\nSorting by Name (A-Z):" << std::endl;
+    std::cout << "\nSize of List: " << dll.Size() << std::endl;
+
+    std::cout << "\nSorting by Name (A-Z):\n";
     dll.OrderByName();
     dll.Print();
 
-    // Sorting by score
-    std::cout << "\nSorting by Score (Descending):" << std::endl;
+    std::cout << "\nSorting by Score (Descending):\n";
     dll.OrderByScore();
     dll.Print();
 
+    std::cout << "\nRemoving index 2 (3rd element):\n";
+    dll.RemoveScore(2);
+    dll.Print();
+
+    std::cout << "\nUpdating Score (Bob to 99):\n";
+    dll.UpdateScore("Eve", 99);
+    dll.Print();
+
+    std::cout << "\nReversing List:\n";
+    dll.Reverse();
+    dll.Print();
+
+    std::cout << "\n=== Creating Second List for Append Test ===\n";
+    DLinkedList dll2;
+    dll2.AddScoreInOrder("Zack", 75);
+    dll2.AddScoreInOrder("Olivia", 93);
+    dll2.Print();
+
+    std::cout << "\nAppending Second List to First List:\n";
+    dll.Append(dll2);
+    dll.Print();
+
+    std::cout << "\nSize After Append: " << dll.Size() << std::endl;
+
+    std::cout << "\n=== Testing Copy Constructor ===\n";
+    DLinkedList dllCopy(dll);
+    dllCopy.Print();
+
+    std::cout << "\n=== Testing Assignment Operator ===\n";
+    DLinkedList dllAssigned;
+    dllAssigned = dll;
+    dllAssigned.Print();
+
+    std::cout << "\n=== Final Test Complete ===\n";
     return 0;
 }
